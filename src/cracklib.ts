@@ -23,6 +23,18 @@ const sha1String = hashString("sha1");
 const sha256String = hashString("sha256");
 const sha512String = hashString("sha512");
 
+const leetSubstitutions: Array<[RegExp, string]> = [
+  [/0/g, "o"],
+  [/1/g, "l"],
+  [/@/g, "a"],
+  [/\$/g, "s"],
+];
+
+const lettersOnlyString = (s = ""): string => s.toLowerCase().replace(/[^a-z]/g, "");
+
+const unleetString = (s = ""): string =>
+  lettersOnlyString(leetSubstitutions.reduce((acc, [leet, letter]) => acc.replace(leet, letter), s.toLowerCase()));
+
 export class PasswordValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -74,6 +86,10 @@ export class Cracklib {
     return new Set(dict);
   }
 
+  private hasDictionaryVariant(word: string): boolean {
+    return this.dictionary.has(lettersOnlyString(word)) || this.dictionary.has(unleetString(word));
+  }
+
   public saveDictionary(filePath: string): void {
     if (filePath.endsWith(".json")) {
       fs.writeFileSync(resolve(filePath), JSON.stringify(Array.from(this.dictionary)));
@@ -92,18 +108,7 @@ export class Cracklib {
     if (this.dictionary.has(word)) {
       throw new PasswordValidationError("Password is too common");
     }
-    if (
-      !this.loose &&
-      this.dictionary.has(
-        word
-          .toLowerCase()
-          .replace("0", "o")
-          .replace("1", "l")
-          .replace("@", "a")
-          .replace("$", "s")
-          .replace(/[^a-z]/g, "")
-      )
-    ) {
+    if (!this.loose && this.hasDictionaryVariant(word)) {
       throw new PasswordValidationError("Password is too similar to a dictionary word");
     }
     return word;
