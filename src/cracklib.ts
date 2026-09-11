@@ -23,17 +23,49 @@ const sha1String = hashString("sha1");
 const sha256String = hashString("sha256");
 const sha512String = hashString("sha512");
 
-const leetSubstitutions: Array<[RegExp, string]> = [
-  [/0/g, "o"],
-  [/1/g, "l"],
-  [/@/g, "a"],
-  [/\$/g, "s"],
+const leetSubstitutions: Array<[string, string]> = [
+  ["@4^", "a"],
+  ["86ß", "b"],
+  ["©¢<[({", "c"],
+  [")?", "d"],
+  ["3&€", "e"],
+  ["ƒ", "f"],
+  ["69&", "g"],
+  ["#", "h"],
+  ["1!¡|]", "i"],
+  ["]¿", "j"],
+  ["1|£¬", "l"],
+  ["0°", "o"],
+  ["9¶", "p"],
+  ["9", "q"],
+  ["2®", "r"],
+  ["5$§", "s"],
+  ["7+†", "t"],
+  ["µ", "u"],
+  ["^", "v"],
+  ["%*", "x"],
+  ["¥", "y"],
+  ["2%", "z"],
 ];
+
+const maxLeetVariants = 256;
 
 const lettersOnlyString = (s = ""): string => s.toLowerCase().replace(/[^a-z]/g, "");
 
-const unleetString = (s = ""): string =>
-  lettersOnlyString(leetSubstitutions.reduce((acc, [leet, letter]) => acc.replace(leet, letter), s.toLowerCase()));
+const leetLetters = (char: string): string[] =>
+  /[a-z]/.test(char)
+    ? [char]
+    : leetSubstitutions.filter(([chars]) => chars.includes(char)).map(([, letter]) => letter);
+
+const unleetStrings = (s = ""): string[] =>
+  s
+    .toLowerCase()
+    .split("")
+    .reduce<string[]>((variants, char) => {
+      const letters = leetLetters(char);
+      const capped = variants.length * letters.length > maxLeetVariants ? letters.slice(0, 1) : letters;
+      return letters.length === 0 ? variants : variants.flatMap((variant) => capped.map((l) => variant + l));
+    }, [""]);
 
 export class PasswordValidationError extends Error {
   constructor(message: string) {
@@ -87,7 +119,7 @@ export class Cracklib {
   }
 
   private hasDictionaryVariant(word: string): boolean {
-    return this.dictionary.has(lettersOnlyString(word)) || this.dictionary.has(unleetString(word));
+    return this.dictionary.has(lettersOnlyString(word)) || unleetStrings(word).some((v) => this.dictionary.has(v));
   }
 
   public saveDictionary(filePath: string): void {
